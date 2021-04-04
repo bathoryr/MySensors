@@ -83,20 +83,46 @@
 
 #define ARDUINO 100
 // This space is intended to be used to include arduino libraries
+#define RCSwitchDisableReceiving
+#include <RCSwitch.h>
 
 #undef ARDUINO
+
+#define CMD_RING    16080895ul		// Code for the doorbell
+#define PIN_RFCOMM  7			// WiringPi pin number (same as physical 7)
+#define ID_DOORBELL 199
+
+RCSwitch rcswitch;
 
 void setup()
 {
 	// Setup locally attached sensors
+        pinMode(PIN_RFCOMM, OUTPUT);
+        rcswitch.enableTransmit(PIN_RFCOMM);
+        rcswitch.setRepeatTransmit(4);
+        rcswitch.setPulseLength(155);
 }
 
 void presentation()
 {
 	// Present locally attached sensors here
+	present(ID_DOORBELL, S_BINARY, "Doorbell KO");
 }
 
 void loop()
 {
 	// Send locally attached sensors data here
+}
+
+void receive(const MyMessage& message)
+{
+	switch(message.sensor)
+	{
+	case ID_DOORBELL:
+		if (message.type == V_STATUS)
+		{
+                        rcswitch.send(CMD_RING, 24);
+		}
+		break;
+	}
 }
