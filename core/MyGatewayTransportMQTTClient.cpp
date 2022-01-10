@@ -21,6 +21,9 @@
 // Topic structure: MY_MQTT_PUBLISH_TOPIC_PREFIX/NODE-ID/SENSOR-ID/CMD-TYPE/ACK-FLAG/SUB-TYPE
 
 #include "MyGatewayTransport.h"
+#include <string>
+#include <vector>
+#include <algorithm>
 
 // housekeeping, remove for 3.0.0
 #ifdef MY_ESP8266_SSID
@@ -116,6 +119,7 @@ static PubSubClient _MQTT_client(_MQTT_ethClient);
 static bool _MQTT_connecting = true;
 static bool _MQTT_available = false;
 static MyMessage _MQTT_msg;
+static std::vector<MyMessage> _retained_msgs; 
 
 // cppcheck-suppress constParameter
 bool gatewayTransportSend(MyMessage &message)
@@ -124,21 +128,41 @@ bool gatewayTransportSend(MyMessage &message)
 		return false;
 	}
 	setIndication(INDICATION_GW_TX);
-	char *topic = protocolMyMessage2MQTT(MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
-	GATEWAY_DEBUG(PSTR("GWT:TPS:TOPIC=%s,MSG SENT\n"), topic);
-#if defined(MY_MQTT_CLIENT_PUBLISH_RETAIN)
-	const bool retain = message.getCommand() == C_SET ||
-	                    (message.getCommand() == C_INTERNAL && message.getType() == I_BATTERY_LEVEL);
-#else
-	const bool retain = false;
-#endif /* End of MY_MQTT_CLIENT_PUBLISH_RETAIN */
-	return _MQTT_client.publish(topic, message.getString(_convBuffer), retain);
+	// If message is request, query stored topics, don't publish
+	if (message.getCommand() == C_REQ)
+	{
+		const MyMessage& msg = _retained_msgs[0];
+		memcpy(message.data, msg.data, msg.getLength());
+		std::swap(message.sender, message.destination);
+		_MQTT_msg = message;
+		_MQTT_available = true;
+		return true;
+	}
+	else
+	{
+		char *topic = protocolMyMessage2MQTT(MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
+		GATEWAY_DEBUG(PSTR("GWT:TPS:TOPIC=%s,MSG SENT\n"), topic);
+	#if defined(MY_MQTT_CLIENT_PUBLISH_RETAIN)
+		const bool retain = message.getCommand() == C_SET ||
+							(message.getCommand() == C_INTERNAL && message.getType() == I_BATTERY_LEVEL);
+	#else
+		const bool retain = false;
+	#endif /* End of MY_MQTT_CLIENT_PUBLISH_RETAIN */
+		return _MQTT_client.publish(topic, message.getString(_convBuffer), retain);
+	}
 }
 
 void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 {
 	GATEWAY_DEBUG(PSTR("GWT:IMQ:TOPIC=%s, MSG RECEIVED\n"), topic);
 	_MQTT_available = protocolMQTT2MyMessage(_MQTT_msg, topic, payload, length);
+	// We are subscribed to the incoming topic, so retained messages are read here
+	// Store values with REATAIN flag set
+	if (_MQTT_msg.getCommand() == C_SET_RETAIN)
+	{
+		_retained_msgs.push_back(_MQTT_msg);
+		// std::find(_retained_msgs.begin(), _retained_msgs.end(), [](){});
+	}
 	setIndication(INDICATION_GW_RX);
 }
 
