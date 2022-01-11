@@ -57,7 +57,7 @@ void _callbackTransportReady(void)
 void _process(void)
 {
 #if defined(MY_DEBUG_VERBOSE_CORE)
-	if (processLock) {
+	if (processLock > 1) {
 		CORE_DEBUG(PSTR("!MCO:PRO:RC=%" PRIu8 "\n"), processLock);	// recursive call detected
 	}
 	processLock++;

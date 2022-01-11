@@ -143,9 +143,10 @@ bool gatewayTransportSend(MyMessage &message)
 		if (iter != _retained_msgs.end())
 		{
 			GATEWAY_DEBUG(PSTR("BUF:REQ:Msg found in buffer, sending it back\n"));
-			memcpy(message.data, iter->data, iter->getLength());
-			std::swap(message.sender, message.destination);
-			_MQTT_msg = message;
+			MyMessage msgtmp = message;
+			msgtmp.setSender(getNodeId());
+			msgtmp.setDestination(message.getSender());
+			_MQTT_msg = msgtmp;
 			_MQTT_available = true;
 		}
 		return true;
