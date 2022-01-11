@@ -124,7 +124,7 @@ static std::vector<MyMessage> _retained_msgs;
 std::vector<MyMessage>::iterator findMsgInBuffer(const MyMessage& msg)
 {
 	return std::find_if(_retained_msgs.begin(), _retained_msgs.end(), 
-	[&msg](const MyMessage& m){return m.destination == msg.destination &&
+	[&msg](const MyMessage& m){return m.sender == msg.sender &&
 							m.sensor == msg.sensor &&
 							m.type == msg.type;});
 }
@@ -139,6 +139,7 @@ bool gatewayTransportSend(MyMessage &message)
 	// If message is request, query stored topics, don't publish
 	if (message.getCommand() == C_REQ)
 	{
+		GATEWAY_DEBUG(PSTR("BUF:REQ:Request CMD received\n"));
 		auto iter = findMsgInBuffer(message);
 		if (iter != _retained_msgs.end())
 		{
@@ -170,7 +171,7 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 	if (_MQTT_msg.getCommand() == C_SET_RETAIN)
 	{
 		auto iter = std::find_if(_retained_msgs.begin(), _retained_msgs.end(), 
-			[](const MyMessage& m){return m.destination == _MQTT_msg.destination &&
+			[](const MyMessage& m){return m.sender == _MQTT_msg.sender &&
 									m.sensor == _MQTT_msg.sensor &&
 									m.type == _MQTT_msg.type;});
 		if (iter != _retained_msgs.end())
@@ -181,7 +182,7 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 		else
 		{
 			_retained_msgs.push_back(_MQTT_msg);
-			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i"), _retained_msgs.size());
+			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i"\n), _retained_msgs.size());
 		}
 	}
 	setIndication(INDICATION_GW_RX);
