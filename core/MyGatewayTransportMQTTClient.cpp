@@ -139,7 +139,7 @@ bool gatewayTransportSend(MyMessage &message)
 	// If message is request, query stored topics, don't publish
 	if (message.getCommand() == C_REQ)
 	{
-		GATEWAY_DEBUG(PSTR("BUF:REQ:Request CMD received\n"));
+		GATEWAY_DEBUG(PSTR("BUF:REQ:Request CMD received: %i->%i\n"), message.sender, message.destination);
 		auto iter = findMsgInBuffer(message);
 		if (iter != _retained_msgs.end())
 		{
