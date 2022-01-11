@@ -182,7 +182,7 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 		else
 		{
 			_retained_msgs.push_back(_MQTT_msg);
-			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i"\n), _retained_msgs.size());
+			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i\n"), _retained_msgs.size());
 		}
 	}
 	setIndication(INDICATION_GW_RX);
