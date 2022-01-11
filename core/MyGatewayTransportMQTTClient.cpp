@@ -121,6 +121,14 @@ static bool _MQTT_available = false;
 static MyMessage _MQTT_msg;
 static std::vector<MyMessage> _retained_msgs; 
 
+std::vector<MyMessage>::iterator findMsgInBuffer(const MyMessage& msg)
+{
+	return std::find_if(_retained_msgs.begin(), _retained_msgs.end(), 
+	[&msg](const MyMessage& m){return m.destination == msg.destination &&
+							m.sensor == msg.sensor &&
+							m.type == msg.type;});
+}
+
 // cppcheck-suppress constParameter
 bool gatewayTransportSend(MyMessage &message)
 {
@@ -131,23 +139,23 @@ bool gatewayTransportSend(MyMessage &message)
 	// If message is request, query stored topics, don't publish
 	if (message.getCommand() == C_REQ)
 	{
-		const MyMessage& msg = _retained_msgs[0];
-		memcpy(message.data, msg.data, msg.getLength());
-		std::swap(message.sender, message.destination);
-		_MQTT_msg = message;
-		_MQTT_available = true;
+		auto iter = findMsgInBuffer(message);
+		if (iter != _retained_msgs.end())
+		{
+			GATEWAY_DEBUG(PSTR("BUF:REQ:Msg found in buffer, sending it back\n"));
+			memcpy(message.data, iter->data, iter->getLength());
+			std::swap(message.sender, message.destination);
+			_MQTT_msg = message;
+			_MQTT_available = true;
+		}
 		return true;
 	}
 	else
 	{
-		char *topic = protocolMyMessage2MQTT(MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
+		const bool retain = message.getCommand() == C_SET_RETAIN;
+		// If retain flag is set, publish message on subscribe topic
+		char *topic = protocolMyMessage2MQTT(retain ? MY_MQTT_SUBSCRIBE_TOPIC_PREFIX : MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
 		GATEWAY_DEBUG(PSTR("GWT:TPS:TOPIC=%s,MSG SENT\n"), topic);
-	#if defined(MY_MQTT_CLIENT_PUBLISH_RETAIN)
-		const bool retain = message.getCommand() == C_SET ||
-							(message.getCommand() == C_INTERNAL && message.getType() == I_BATTERY_LEVEL);
-	#else
-		const bool retain = false;
-	#endif /* End of MY_MQTT_CLIENT_PUBLISH_RETAIN */
 		return _MQTT_client.publish(topic, message.getString(_convBuffer), retain);
 	}
 }
@@ -160,8 +168,20 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 	// Store values with REATAIN flag set
 	if (_MQTT_msg.getCommand() == C_SET_RETAIN)
 	{
-		_retained_msgs.push_back(_MQTT_msg);
-		// std::find(_retained_msgs.begin(), _retained_msgs.end(), [](){});
+		auto iter = std::find_if(_retained_msgs.begin(), _retained_msgs.end(), 
+			[](const MyMessage& m){return m.destination == _MQTT_msg.destination &&
+									m.sensor == _MQTT_msg.sensor &&
+									m.type == _MQTT_msg.type;});
+		if (iter != _retained_msgs.end())
+		{
+			*iter = _MQTT_msg;
+			GATEWAY_DEBUG(PSTR("BUF:MSG:Update size=%i\n"), _retained_msgs.size());
+		}
+		else
+		{
+			_retained_msgs.push_back(_MQTT_msg);
+			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i"), _retained_msgs.size());
+		}
 	}
 	setIndication(INDICATION_GW_RX);
 }
