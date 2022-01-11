@@ -124,7 +124,7 @@ static std::vector<MyMessage> _retained_msgs;
 std::vector<MyMessage>::iterator findMsgInBuffer(const MyMessage& msg)
 {
 	return std::find_if(_retained_msgs.begin(), _retained_msgs.end(), 
-	[&msg](const MyMessage& m){return m.sender == msg.sender &&
+	[&msg](const MyMessage& m){return m.destination == msg.sender &&
 							m.sensor == msg.sensor &&
 							m.type == msg.type;});
 }
@@ -177,7 +177,7 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 		if (iter != _retained_msgs.end())
 		{
 			*iter = _MQTT_msg;
-			GATEWAY_DEBUG(PSTR("BUF:MSG:Update size=%i\n"), _retained_msgs.size());
+			GATEWAY_DEBUG(PSTR("BUF:MSG:%i->%iUpdate size=%i\n"), _MQTT_msg.sender, _MQTT_msg.destination, _retained_msgs.size());
 		}
 		else
 		{
