@@ -335,7 +335,7 @@ bool send(MyMessage &message, const bool requestEcho)
 	return send(message, C_SET, requestEcho);
 }
 
-bool send(MyMessage &msg, mysensors_command_t cmd, const bool requestEcho);
+bool send(MyMessage &msg, mysensors_command_t cmd, const bool requestEcho)
 {
 	message.setSender(getNodeId());
 	message.setCommand(cmd);
