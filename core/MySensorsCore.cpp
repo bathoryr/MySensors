@@ -330,26 +330,26 @@ bool _sendRoute(MyMessage &message)
 #endif
 }
 
-bool send(MyMessage &message, const bool requestEcho)
+bool send(MyMessage &msg, const bool requestEcho)
 {
-	return send(message, C_SET, requestEcho);
+	return send(msg, C_SET, requestEcho);
 }
 
 bool send(MyMessage &msg, mysensors_command_t cmd, const bool requestEcho)
 {
-	message.setSender(getNodeId());
-	message.setCommand(cmd);
-	message.setRequestEcho(requestEcho);
+	msg.setSender(getNodeId());
+	msg.setCommand(cmd);
+	msg.setRequestEcho(requestEcho);
 
 #if defined(MY_REGISTRATION_FEATURE) && !defined(MY_GATEWAY_FEATURE)
 	if (_coreConfig.nodeRegistered) {
-		return _sendRoute(message);
+		return _sendRoute(msg);
 	} else {
 		CORE_DEBUG(PSTR("!MCO:SND:NODE NOT REG\n"));	// node not registered
 		return false;
 	}
 #else
-	return _sendRoute(message);
+	return _sendRoute(msg);
 #endif
 }
 
