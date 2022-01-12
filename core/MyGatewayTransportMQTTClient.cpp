@@ -144,12 +144,12 @@ bool gatewayTransportSend(MyMessage &message)
 		auto iter = findMsgInBuffer(message);
 		if (iter != _retained_msgs.end())
 		{
-			GATEWAY_DEBUG(PSTR("BUF:REQ:Msg found in buffer, sending it back\n"));
-			MyMessage msgtmp = *iter;
-			msgtmp.setSender(getNodeId());
-			msgtmp.setDestination(message.getSender());
+			GATEWAY_DEBUG(PSTR("BUF:REQ:Msg found in buffer, sending it back %i->%i\n"), iter->sender, iter->destination);
+			// MyMessage msgtmp = *iter;
+			// msgtmp.setSender(getNodeId());
+			// msgtmp.setDestination(message.getSender());
 			// TODO: check dest and sender
-			_MQTT_msg = msgtmp;
+			_MQTT_msg = *iter;
 			_MQTT_available = true;
 		}
 		return true;
