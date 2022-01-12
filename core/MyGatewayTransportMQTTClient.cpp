@@ -130,6 +130,7 @@ std::vector<MyMessage>::iterator findMsgInBuffer(const MyMessage& msg)
 }
 
 // cppcheck-suppress constParameter
+// Sensor -> GW -> Controller
 bool gatewayTransportSend(MyMessage &message)
 {
 	if (!_MQTT_client.connected()) {
@@ -144,9 +145,10 @@ bool gatewayTransportSend(MyMessage &message)
 		if (iter != _retained_msgs.end())
 		{
 			GATEWAY_DEBUG(PSTR("BUF:REQ:Msg found in buffer, sending it back\n"));
-			MyMessage msgtmp = message;
+			MyMessage msgtmp = *iter;
 			msgtmp.setSender(getNodeId());
 			msgtmp.setDestination(message.getSender());
+			// TODO: check dest and sender
 			_MQTT_msg = msgtmp;
 			_MQTT_available = true;
 		}
@@ -155,7 +157,7 @@ bool gatewayTransportSend(MyMessage &message)
 	else
 	{
 		const bool retain = message.getCommand() == C_SET_RETAIN;
-		// If retain flag is set, publish message on subscribe topic
+		// If retain flag is set, publish message on subscriber topic
 		char *topic = protocolMyMessage2MQTT(retain ? MY_MQTT_SUBSCRIBE_TOPIC_PREFIX : MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
 		GATEWAY_DEBUG(PSTR("GWT:TPS:TOPIC=%s,MSG SENT\n"), topic);
 		return _MQTT_client.publish(topic, message.getString(_convBuffer), retain);
@@ -177,12 +179,12 @@ void incomingMQTT(char *topic, uint8_t *payload, unsigned int length)
 		if (iter != _retained_msgs.end())
 		{
 			*iter = _MQTT_msg;
-			GATEWAY_DEBUG(PSTR("BUF:MSG:%i->%iUpdate size=%i\n"), _MQTT_msg.sender, _MQTT_msg.destination, _retained_msgs.size());
+			GATEWAY_DEBUG(PSTR("BUF:MSG:%i->%i Update size=%i\n"), _MQTT_msg.sender, _MQTT_msg.destination, _retained_msgs.size());
 		}
 		else
 		{
 			_retained_msgs.push_back(_MQTT_msg);
-			GATEWAY_DEBUG(PSTR("BUF:MSG:New size=%i\n"), _retained_msgs.size());
+			GATEWAY_DEBUG(PSTR("BUF:MSG:%i->%i New size=%i\n"), _MQTT_msg.sender, _MQTT_msg.destination, _retained_msgs.size());
 		}
 	}
 	setIndication(INDICATION_GW_RX);
