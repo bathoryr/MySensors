@@ -332,8 +332,13 @@ bool _sendRoute(MyMessage &message)
 
 bool send(MyMessage &message, const bool requestEcho)
 {
+	return send(message, C_SET, requestEcho);
+}
+
+bool send(MyMessage &msg, mysensors_command_t cmd, const bool requestEcho);
+{
 	message.setSender(getNodeId());
-	message.setCommand(C_SET);
+	message.setCommand(cmd);
 	message.setRequestEcho(requestEcho);
 
 #if defined(MY_REGISTRATION_FEATURE) && !defined(MY_GATEWAY_FEATURE)

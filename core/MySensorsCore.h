@@ -172,6 +172,8 @@ bool sendSketchInfo(const __FlashStringHelper *name, const __FlashStringHelper *
  */
 bool send(MyMessage &msg, const bool requestEcho = false);
 
+bool send(MyMessage &msg, mysensors_command_t cmd, const bool requestEcho = false);
+
 /**
  * Send this nodes battery level to gateway.
  * @param level Level between 0-100(%)
